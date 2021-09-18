@@ -80,8 +80,8 @@ public:
 	
 	//r/w time and date
 	void timeDateGet(int timeDateArr[] );
-	//TODO void timeDateSet(int second, int minute, int hour);//set only time
-	//TODO void timeDateSet(int day, int weekday, int month, int year);//set only date
+	void timeDateSet(int second, int minute, int hour);//set only time
+	void timeDateSet(int day, int weekday, int month, int year);//set only date
 	void timeDateSet(int second, int minute, int hour, int day, int weekday, int month, int year);//year is only the 2 last digit (ex : for 2025 -> year = 25)
 	
 	//TODO alarm setup
@@ -92,7 +92,7 @@ public:
 private:
 	//read write operations on each register
 	byte readRegister(int address);
-	void writeRegister(int address);
+	void writeRegister(int address, byte b);
 
 
 };

@@ -7,8 +7,8 @@
 // the setup function runs once when you press reset or power the board
 
 #include <Wire.h>
+#include "PCA85073A.h"
 void setup() {
-
 }
 
 // the loop function runs over and over again until power down or reset
