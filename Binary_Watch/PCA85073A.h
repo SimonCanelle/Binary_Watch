@@ -33,7 +33,34 @@ Timer registers
 * 
 */
 
-#ifndef PCA85073A_I2C
+#ifndef PCA85073A_H
+#define PCA85073A_H
+
+#include <Wire.h>
+
+//I2C address
+#define I2CAddress 81 //1010001
+
+//register addresses
+#define Control1 0x00
+#define Control2 0x01
+#define Offset 0x02
+#define RAM_Byte 0x03
+#define Seconds 0x04
+#define Minutes 0x05
+#define Hours 0x06
+#define Days 0x07
+#define Weekdays 0x08
+#define Months 0x09
+#define Years 0x0A
+#define Second_alarm 0x0B
+#define Minute_alarm 0x0C
+#define Hour_alarm 0x0D
+#define Day_alarm 0x0E
+#define Weekday_alarm 0x0F
+#define Timer_value 0x10
+#define Timer_mode 0x11
+
 
 
 
@@ -41,17 +68,31 @@ Timer registers
 
 class PCA85073A
 {
+	
 public:
 	//constructor standard
-	//constructor custom I2C address
+	PCA85073A();
+	
+	//set Controls 1 and 2
+	void setControl1(byte value);
+	void setControl2(byte value);
+	void setOffset(bool mode, int value);
+	
+	//r/w time and date
+	void timeDateGet(int timeDateArr[] );
+	//TODO void timeDateSet(int second, int minute, int hour);//set only time
+	//TODO void timeDateSet(int day, int weekday, int month, int year);//set only date
+	void timeDateSet(int second, int minute, int hour, int day, int weekday, int month, int year);//year is only the 2 last digit (ex : for 2025 -> year = 25)
+	
+	//TODO alarm setup
 	//
-	//some text to do a test
-	//
-	//
-	//
+	//TODO timer setup
+
 
 private:
 	//read write operations on each register
+	byte readRegister(int address);
+	void writeRegister(int address);
 
 
 };
