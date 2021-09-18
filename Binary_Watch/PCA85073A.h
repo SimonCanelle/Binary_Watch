@@ -39,7 +39,8 @@ Timer registers
 #include <Wire.h>
 
 //I2C address
-#define I2CAddress 81 //1010001
+#define I2CAddressRead 0xA2 //10100010
+#define I2CAddressWrite 0xA3 //10100011
 
 //register addresses
 #define Control1 0x00
@@ -61,11 +62,9 @@ Timer registers
 #define Timer_value 0x10
 #define Timer_mode 0x11
 
-
-
-
-
-
+/// <summary>
+/// Class for PCA85073A RTC I2C communication
+/// </summary>
 class PCA85073A
 {
 	
@@ -92,7 +91,9 @@ public:
 private:
 	//read write operations on each register
 	byte readRegister(int address);
+	void readRegister(int address, int numberOfBytes, byte byteArr[]);//read multiple bytes
 	void writeRegister(int address, byte b);
+	void writeRegister(int address, byte b[]);//write multiple bytes
 
 
 };

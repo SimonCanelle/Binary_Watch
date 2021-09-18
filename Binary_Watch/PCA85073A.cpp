@@ -124,7 +124,32 @@ void PCA85073A::timeDateSet(int day, int weekday, int month, int year) {//year i
 /// <param name="address">from 0x00 to 0x11</param>
 /// <returns>value of register</returns>
 byte PCA85073A::readRegister(int address) {
+	Wire.beginTransmission(I2CAddressWrite);
+	Wire.write(address);
+	Wire.endTransmission();	
+	
+	Wire.beginTransmission(I2CAddressRead);
+	byte b = Wire.read();
+	Wire.endTransmission();
 
+	return 	b;
+}
+
+/// <summary>
+/// Read the register at wanted address
+/// </summary>
+/// <param name="address">from 0x00 to 0x11</param>
+/// <param name="numberOfBytes">number of bytes to read</param>
+/// <param name="byteArr[]"></param>
+/// <returns>value of register</returns>
+void PCA85073A::readRegister(int startingAddress, int numberOfBytes, byte byteArr[]) {
+	Wire.beginTransmission(I2CAddressWrite);
+	Wire.write(startingAddress);
+	Wire.endTransmission();
+
+	Wire.beginTransmission(I2CAddressRead);
+	for(int i = 0; i< numberOfBytes; i++)byteArr[i] = Wire.read();	
+	Wire.endTransmission();
 }
 
 /// <summary>
@@ -133,6 +158,15 @@ byte PCA85073A::readRegister(int address) {
 /// <param name="address">from 0x00 to 0x11</param>
 /// <param name="b">8 bit value to input in register</param>
 void PCA85073A::writeRegister(int address, byte b) {
+
+}
+
+/// <summary>
+/// Write register at wanted address
+/// </summary>
+/// <param name="address">from 0x00 to 0x11</param>
+/// <param name="b">8 bit values to input in register</param>
+void PCA85073A::writeRegister(int address, byte b[]) {
 
 }
 
