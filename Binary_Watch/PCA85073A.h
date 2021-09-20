@@ -1,11 +1,12 @@
-/*Author : Simon Janelle-Bombardier
-* Created : 2021-09-15* 
+/*	Name : PCA85073A.h
+*	Author : Simon Janelle-Bombardier
+*	Created : 2021-09-15 
 * 
 * I2C driver for PCA85073A from NXP
 * Datasheet : https://www.nxp.com/docs/en/data-sheet/PCA85073A.pdf
-*
-* Register map, All register are 8 bit
-* 
+
+Register map
+
   address	|	name	|	bit 7	|	6	|	5	|	4	|	3	|	2	|	1	|	0	|
 Control and status registers
 00h			  Control_1 |  EXT_TEST	|	-	|  STOP	|	SR  |    -	|   CIE	| 12_24 |CAP_SEL|
@@ -31,7 +32,7 @@ Alarm registers
 Timer registers
 10h			Timer_value |	T[7:0]															|
 11h			Timer_mode	|	-		|	-	|	-	|	TCF[4:3]	|	TE	|	TIE	| TI_TP |
-* 
+ 
 */
 
 #ifndef PCA85073A_H
@@ -83,9 +84,12 @@ public:
 	void timeDateSet(int day, int weekday, int month, int year);//set only date
 	void timeDateSet(int second, int minute, int hour, int day, int weekday, int month, int year);//year is only the 2 last digit (ex : for 2025 -> year = 25)
 	
+	byte getRAMByte();
+	void setRAMByte(byte b);
 	//TODO alarm setup
 	//
 	//TODO timer setup
+
 
 
 private:

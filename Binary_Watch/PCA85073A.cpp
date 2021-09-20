@@ -1,3 +1,9 @@
+/*	
+*	Name : PCA85073A.cpp
+*	Author : Simon Janelle-Bombardier
+*	Created : 2021-09-15
+*/
+
 #include "PCA85073A.h"
 #include <Wire.h>
 
@@ -70,6 +76,22 @@ void PCA85073A::setOffset(bool mode, int value) {
 	writeRegister(Offset, b);
 }
 
+/// <summary>
+/// Get the value in the RAM byte
+/// </summary>
+/// <returns>value of the register</returns>
+byte PCA85073A::getRAMByte() {
+	return readRegister(RAM_Byte);
+}
+
+/// <summary>
+/// set the value in the RAM byte
+/// </summary>
+/// <param name="b">value to input</param>
+void PCA85073A::setRAMByte(byte b) {
+	writeRegister(RAM_Byte, b);
+}
+
 /*Recommended method for reading the time:
 	1. Send a START condition and the slave address(see Table 38 on page 34) for write
 	(A2h)
@@ -121,15 +143,15 @@ void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ uni
 	timeDateArr[7] = b[3] & 0b00001111;
 
 	//weekdays
-	timeDateArr[8] = (b[3] & 0b00000111) >> 4;
+	timeDateArr[8] = (b[4] & 0b00000111);
 
 	//months
-	timeDateArr[9] = (b[3] & 0b00010000) >> 4;
-	timeDateArr[10] = b[3] & 0b00001111;
+	timeDateArr[9] = (b[5] & 0b00010000) >> 4;
+	timeDateArr[10] = b[5] & 0b00001111;
 
 	//years
-	timeDateArr[11] = (b[3] & 0b11110000) >> 4;
-	timeDateArr[12] = b[3] & 0b00001111;
+	timeDateArr[11] = (b[6] & 0b11110000) >> 4;
+	timeDateArr[12] = b[6] & 0b00001111;
 
 }
 
@@ -146,7 +168,7 @@ void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ uni
 /// <param name="month">1 to 12</param>
 /// <param name="year">last two digits</param>
 void PCA85073A::timeDateSet(int second, int minute, int hour, int day, int weekday, int month, int year){//year is only the 2 last digit (ex : for 2025 -> year = 25)
-
+	//TODO timeDateSet date time
 }
 
 /// <summary>
@@ -157,7 +179,7 @@ void PCA85073A::timeDateSet(int second, int minute, int hour, int day, int weekd
 /// <param name="month">1 to 12</param>
 /// <param name="year">last two digits</param>
 void PCA85073A::timeDateSet(int second, int minute, int hour) {//year is only the 2 last digit (ex : for 2025 -> year = 25)
-
+	//TODO timeDateSet time
 }
 
 /// <summary>
@@ -168,7 +190,7 @@ void PCA85073A::timeDateSet(int second, int minute, int hour) {//year is only th
 /// <param name="month">1 to 12</param>
 /// <param name="year">last two digits</param>
 void PCA85073A::timeDateSet(int day, int weekday, int month, int year) {//year is only the 2 last digit (ex : for 2025 -> year = 25)
-
+	//TODO timeDateSet date
 }
 
 ///////////////////////

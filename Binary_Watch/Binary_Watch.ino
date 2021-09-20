@@ -1,7 +1,7 @@
 /*
  Name:		Binary_Watch.ino
  Created:	15/09/2021 12:49:16
- Author:	simon
+ Author:	Simon Janelle-Bombardier
 */
 
 // the setup function runs once when you press reset or power the board
