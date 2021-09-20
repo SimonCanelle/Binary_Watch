@@ -2,6 +2,7 @@
 * Created : 2021-09-15* 
 * 
 * I2C driver for PCA85073A from NXP
+* Datasheet : https://www.nxp.com/docs/en/data-sheet/PCA85073A.pdf
 *
 * Register map, All register are 8 bit
 * 
@@ -39,8 +40,7 @@ Timer registers
 #include <Wire.h>
 
 //I2C address
-#define I2CAddressRead 0xA2 //10100010
-#define I2CAddressWrite 0xA3 //10100011
+#define I2CAddress 0x51 //1010001
 
 //register addresses
 #define Control1 0x00
@@ -89,11 +89,14 @@ public:
 
 
 private:
+	//12 or 24 h mode
+	bool mode24 = true;
+
 	//read write operations on each register
 	byte readRegister(int address);
 	void readRegister(int address, int numberOfBytes, byte byteArr[]);//read multiple bytes
 	void writeRegister(int address, byte b);
-	void writeRegister(int address, byte b[]);//write multiple bytes
+	void writeRegister(int address, int numberOfBytes, byte b[]);//write multiple bytes
 
 
 };

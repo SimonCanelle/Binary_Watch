@@ -1,12 +1,23 @@
 #include "PCA85073A.h"
 #include <Wire.h>
 
+//////////////////////
+///Public Functions///
+//////////////////////
 
 /// <summary>
 /// Constructor for the PCA85073A I2C driver
 /// </summary>
 PCA85073A::PCA85073A () {
 	Wire.begin();
+
+	//verify clock mode
+	if((readRegister(Control1)&0b00000010) == 2) {
+		mode24 = false;
+	}
+	else {
+		mode24 = true;
+	}
 }
 
 /// <summary>
@@ -23,7 +34,13 @@ PCA85073A::PCA85073A () {
 /// </summary>
 /// <param name="value">value to input in register</param>
 void PCA85073A::setControl1(byte value) {
+	writeRegister(Control1, value);
 
+	if ((value & 0b00000010) == 2) {
+		mode24 = false;
+	}	else {
+		mode24 = true;
+	}
 }
 
 /// <summary>
@@ -34,13 +51,13 @@ void PCA85073A::setControl1(byte value) {
 ///   5		|	MI		|	0
 ///   4		|	HMI		|	0
 ///   3		|	TF		|	0
-///   2		|  COF[2:0]	|	0 
-///   1		|			|	0
-///   0		|			|	0
+///   2		|	COF[2]	|	0 
+///   1		|	COF[1]	|	0
+///   0		|	COF[0]	|	0
 /// </summary>
 /// <param name="value">value to input in register</param>
 void PCA85073A::setControl2(byte value) {
-
+	writeRegister(Control2, value);
 }
 
 /// <summary>
@@ -49,7 +66,8 @@ void PCA85073A::setControl2(byte value) {
 /// <param name="mode">0 : once every two hours, 1 : once every 4 seconds</param>
 /// <param name="value">value of the correction parameter</param>
 void PCA85073A::setOffset(bool mode, int value) {
-
+	byte  b = mode << 7 & (0b01111111 & value);
+	writeRegister(Offset, b);
 }
 
 /*Recommended method for reading the time:
@@ -74,10 +92,45 @@ void PCA85073A::setOffset(bool mode, int value) {
 /// Array needs to have a length of 14
 /// {seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday_tenths, weekday_unit, month_tenths, month_unit, year_tenths, year_units}/// 
 /// </param>
-void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday_tenths, weekday_unit, month_tenths, month_unit, year_tenths, year_units}
+void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday, month_tenths, month_unit, year_tenths, year_units}
 	if (sizeof(timeDateArr) != 14) return;
 
+	byte b[7];
+	readRegister(Seconds, 7, b);
+
+	//seconds
+	timeDateArr[0] = (b[0] & 0b01110000) >> 4;
+	timeDateArr[1] = b[0] & 0b00001111;
+
+	//minutes
+	timeDateArr[2] = (b[1] & 0b01110000) >> 4;
+	timeDateArr[3] = b[1] & 0b00001111;
 	
+	//hours
+	if (mode24) {
+		timeDateArr[4] = (b[2] & 0b00110000) >> 4;
+		timeDateArr[5] = b[2] & 0b00001111;
+	}
+	else {
+		timeDateArr[4] = (b[2] & 0b00010000) >> 4;
+		timeDateArr[5] = b[2] & 0b00001111;
+	}
+
+	//days
+	timeDateArr[6] = (b[3] & 0b00110000) >> 4;
+	timeDateArr[7] = b[3] & 0b00001111;
+
+	//weekdays
+	timeDateArr[8] = (b[3] & 0b00000111) >> 4;
+
+	//months
+	timeDateArr[9] = (b[3] & 0b00010000) >> 4;
+	timeDateArr[10] = b[3] & 0b00001111;
+
+	//years
+	timeDateArr[11] = (b[3] & 0b11110000) >> 4;
+	timeDateArr[12] = b[3] & 0b00001111;
+
 }
 
 
@@ -118,17 +171,22 @@ void PCA85073A::timeDateSet(int day, int weekday, int month, int year) {//year i
 
 }
 
+///////////////////////
+///Private Functions///
+///////////////////////
+
 /// <summary>
 /// Read the register at wanted address
 /// </summary>
 /// <param name="address">from 0x00 to 0x11</param>
 /// <returns>value of register</returns>
 byte PCA85073A::readRegister(int address) {
-	Wire.beginTransmission(I2CAddressWrite);
+	Wire.beginTransmission(I2CAddress);
 	Wire.write(address);
 	Wire.endTransmission();	
 	
-	Wire.beginTransmission(I2CAddressRead);
+	Wire.requestFrom(I2CAddress,1);
+	while (!Wire.available());
 	byte b = Wire.read();
 	Wire.endTransmission();
 
@@ -143,11 +201,12 @@ byte PCA85073A::readRegister(int address) {
 /// <param name="byteArr[]"></param>
 /// <returns>value of register</returns>
 void PCA85073A::readRegister(int startingAddress, int numberOfBytes, byte byteArr[]) {
-	Wire.beginTransmission(I2CAddressWrite);
+	Wire.beginTransmission(I2CAddress);
 	Wire.write(startingAddress);
 	Wire.endTransmission();
 
-	Wire.beginTransmission(I2CAddressRead);
+	Wire.requestFrom(I2CAddress, numberOfBytes);
+	while (Wire.available() < numberOfBytes);
 	for(int i = 0; i< numberOfBytes; i++)byteArr[i] = Wire.read();	
 	Wire.endTransmission();
 }
@@ -158,16 +217,23 @@ void PCA85073A::readRegister(int startingAddress, int numberOfBytes, byte byteAr
 /// <param name="address">from 0x00 to 0x11</param>
 /// <param name="b">8 bit value to input in register</param>
 void PCA85073A::writeRegister(int address, byte b) {
-
+	Wire.beginTransmission(I2CAddress);
+	Wire.write(address);
+	Wire.write(b);
+	Wire.endTransmission();
 }
 
 /// <summary>
 /// Write register at wanted address
 /// </summary>
 /// <param name="address">from 0x00 to 0x11</param>
+/// <param name="numberOfBytes">must be equal or smaller than byte array length</param>
 /// <param name="b">8 bit values to input in register</param>
-void PCA85073A::writeRegister(int address, byte b[]) {
-
+void PCA85073A::writeRegister(int startingAddress, int numberOfBytes, byte b[]) {
+	Wire.beginTransmission(I2CAddress);
+	Wire.write(startingAddress);
+	for (int i = 0; i < numberOfBytes; i++)Wire.write(b[i]);
+	Wire.endTransmission();
 }
 
 
