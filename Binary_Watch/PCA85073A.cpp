@@ -6,6 +6,7 @@
 
 #include "PCA85073A.h"
 #include <Wire.h>
+#include <Arduino.h>
 
 //////////////////////
 ///Public Functions///
@@ -72,7 +73,7 @@ void PCA85073A::setControl2(byte value) {
 /// <param name="mode">0 : once every two hours, 1 : once every 4 seconds</param>
 /// <param name="value">value of the correction parameter</param>
 void PCA85073A::setOffset(bool mode, int value) {
-	byte  b = mode << 7 & (0b01111111 & value);
+	byte  b = mode << 7 | (0b01111111 & value);
 	writeRegister(Offset, b);
 }
 
@@ -111,8 +112,8 @@ void PCA85073A::setRAMByte(byte b) {
 /// Get an array of the time and date separated into digits
 /// </summary>
 /// <param name="timeDateArr">
-/// Array needs to have a length of 14
-/// {seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday_tenths, weekday_unit, month_tenths, month_unit, year_tenths, year_units}/// 
+/// Array needs to have a length of 13
+/// {seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday, month_tenths, month_unit, year_tenths, year_units}
 /// </param>
 void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday, month_tenths, month_unit, year_tenths, year_units}
 	if (sizeof(timeDateArr) != 14) return;
@@ -167,7 +168,7 @@ void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ uni
 /// <param name="day">1 to 31</param>
 /// <param name="weekday">1 to 7 (starts Sunday)</param>
 /// <param name="month">1 to 12</param>
-/// <param name="year">last two digits</param>
+/// <param name="year">last two digits of the year</param>
 void PCA85073A::timeDateSet(int second, int minute, int hour, bool AmPm, int day, int weekday, int month, int year){//year is only the 2 last digit (ex : for 2025 -> year = 25)
 	
 	//array of bytes to send

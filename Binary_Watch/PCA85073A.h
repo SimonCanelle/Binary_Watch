@@ -39,6 +39,7 @@ Timer registers
 #define PCA85073A_H
 
 #include <Wire.h>
+#include <Arduino.h>
 
 //I2C address
 #define I2CAddress 0x51 //1010001
