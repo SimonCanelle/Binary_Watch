@@ -28,10 +28,19 @@
 ///time components
 PCA85073A rtc;
 int timeDateArr[13]; //{seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday, month_tenths, month_unit, year_tenths, year_units}
-
-unsigned int timeNow = 0;
-unsigned int timeLast = 0;
+//wake timer
+unsigned int timeWNow = 0;
+unsigned int timeWLast = 0;
 unsigned int displayDelay = 5000; //in ms
+//debounce timer
+unsigned int timeDNow = 0;
+unsigned int timeDLast = 0;
+unsigned int debounceDelay = 100; //in ms
+//loop timer
+unsigned int timeLNow = 0;
+unsigned int timeLLast = 0;
+unsigned int loopDelay = 1000; //in ms
+
 
 bool awake = true;
 bool DorT = false; // false : SW1, true : SW2
@@ -68,14 +77,15 @@ void setup() {
 
 	//verify RTC RAM
 	byte b = rtc.getRAMByte();
+	//apply settings if not already set up
 	if (b != RAM_CODE) {
-		b = 0b00000000; //TODO : set right settings
+		b = 0b00000101; 
 		rtc.setControl1(b);
 
-		b = 0b00000000; //TODO : set right settings
+		b = 0b00000111; 
 		rtc.setControl2(b);
 
-		b = 0b00000000; //TODO : set right settings
+		b = 0b00000011; // value calculated from datasheet
 		rtc.setOffset(0, b);
 
 		rtc.setRAMByte(RAM_CODE);
@@ -90,32 +100,38 @@ void setup() {
 void loop() {	
 	//normal display
 	if (awake && !(timeChange|dateChange)) {
-		timeNow = millis();
-		if (timeNow - timeLast >= displayDelay) {
+		timeWNow = millis();
+		timeLNow = timeWNow;
+
+		if (timeWNow - timeWLast >= displayDelay) {
 			awake = false;
 		}
 
-		rtc.timeDateGet(timeDateArr);
+		//update display every s
+		if (timeLNow - timeLLast >= loopDelay) {
+			timeLLast = timeLNow;
 
-		//input the wanted data in matrix to be displayed
-		if (DorT) {
-			if (date) {
-				//input year in led matrix
-				valueToMatrix(2, 0, timeDateArr[11], timeDateArr[12]);
+			rtc.timeDateGet(timeDateArr);
+
+			//input the wanted data in matrix to be displayed
+			if (DorT) {
+				if (date) {
+					//input year in led matrix
+					valueToMatrix(2, 0, timeDateArr[11], timeDateArr[12]);
+				}
+				else {
+					//input month/day in led matrix
+					valueToMatrix(timeDateArr[9], timeDateArr[10], timeDateArr[6], timeDateArr[7]);
+				}
 			}
+
 			else {
-				//input month/day in led matrix
-				valueToMatrix(timeDateArr[9], timeDateArr[10], timeDateArr[6], timeDateArr[7]);
+				//input minutes and hour in led matrix
+				valueToMatrix(timeDateArr[2], timeDateArr[3], timeDateArr[4], timeDateArr[5]);
 			}
+			//display matrix
+			display();
 		}
-		
-		else {
-			//input minutes and hour in led matrix
-			valueToMatrix(timeDateArr[2], timeDateArr[3], timeDateArr[4], timeDateArr[5]);
-		}		
-		//display matrix
-		display();
-
 	}
 
 	//modify time
@@ -200,29 +216,36 @@ void valueToMatrix(int num1tenth, int num1unit, int num2tenth, int num2unit) {
 
 
 void WakeUpSW1() {
+	timeDNow = millis();
 	if (!awake) {
 		awake = true;
-		timeLast = millis();
+		timeWLast = millis();
 		DorT = false;
 	}
 	else {
-		timeLast = millis();//reset display time
-		DorT = false;
+		if (timeDNow - timeDLast >= debounceDelay) {
+			timeWLast = millis();//reset display time
+			DorT = false;
+		}
 	}
 }
 
 
 void WakeUpSW2() {
+	timeDNow = millis();
 	if (!awake) {
 		awake = true;
-		timeLast = millis();
+		timeWLast = millis();
 		date = false;
 		DorT = true;
 	}
 	else {
-		date = !date;
-		timeLast = millis();//reset display time
-		DorT = true;
+		if (timeDNow - timeDLast >= debounceDelay) {
+			timeDLast = timeDNow;
+			date = !date;
+			timeWLast = millis();//reset display time
+			DorT = true;
+		}
 	}
 
 }
