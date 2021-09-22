@@ -163,12 +163,40 @@ void PCA85073A::timeDateGet(int timeDateArr[]) { //{seconds_tenths, seconds_ uni
 /// <param name="second">0 to 59</param>
 /// <param name="minute">0 to 59</param>
 /// <param name="hour"> 1 to 24</param>
+/// <param name="AmPm"> used in 12h mode, true for Pm</param>
 /// <param name="day">1 to 31</param>
 /// <param name="weekday">1 to 7 (starts Sunday)</param>
 /// <param name="month">1 to 12</param>
 /// <param name="year">last two digits</param>
-void PCA85073A::timeDateSet(int second, int minute, int hour, int day, int weekday, int month, int year){//year is only the 2 last digit (ex : for 2025 -> year = 25)
-	//TODO timeDateSet date time
+void PCA85073A::timeDateSet(int second, int minute, int hour, bool AmPm, int day, int weekday, int month, int year){//year is only the 2 last digit (ex : for 2025 -> year = 25)
+	
+	//array of bytes to send
+	byte arr[7];
+
+	//masks are applied to register with unused/reserved bits
+	//seconds, stored in BCD format 
+	arr[0] = (second % 10 | (second / 10) << 4) & 0b01111111; 
+	
+	//minutes, stored in BCD format
+	arr[1] = (minute % 10 | (minute / 10) << 4) & 0b01111111;
+
+	//hours, stored in BCD format
+	if (mode24) arr[2] = (hour % 10 | (hour / 10) << 4) & 0b00111111;
+	else arr[2] = (AmPm << 5 | hour % 10 | (hour / 10) << 4) & 0b00111111;
+
+	//days, stored in BCD format
+	arr[3] = (day % 10 | (day / 10) << 4) & 0b00111111;
+
+	//weekdays
+	arr[4] = weekday & 0b00000111;
+
+	//months, stored in BCD format
+	arr[5] = (month % 10 | (month / 10) << 4) & 0b00011111;
+
+	//year, stored in BCD format
+	arr[6] = year % 10 | (year / 10) << 4;
+
+	writeRegister(Seconds, 7, arr);
 }
 
 /// <summary>
@@ -178,8 +206,23 @@ void PCA85073A::timeDateSet(int second, int minute, int hour, int day, int weekd
 /// <param name="weekday">1 to 7 (starts Sunday)</param>
 /// <param name="month">1 to 12</param>
 /// <param name="year">last two digits</param>
-void PCA85073A::timeDateSet(int second, int minute, int hour) {//year is only the 2 last digit (ex : for 2025 -> year = 25)
-	//TODO timeDateSet time
+/// <param name="AmPm"> used in 12h mode, true for Pm</param>
+void PCA85073A::timeDateSet(int second, int minute, int hour, bool AmPm) {//year is only the 2 last digit (ex : for 2025 -> year = 25)
+	//array of bytes to send
+	byte arr[3];
+
+	//masks are applied to register with unused/reserved bits
+	//seconds, stored in BCD format 
+	arr[0] = (second % 10 | (second / 10) << 4) & 0b01111111;
+
+	//minutes, stored in BCD format
+	arr[1] = (minute % 10 | (minute / 10) << 4) & 0b01111111;
+
+	//hours, stored in BCD format
+	if (mode24) arr[2] = (hour % 10 | (hour / 10) << 4) & 0b00111111;
+	else arr[2] = (AmPm << 5 | hour % 10 | (hour / 10) << 4) & 0b00111111;
+
+	writeRegister(Seconds, 3, arr);
 }
 
 /// <summary>
@@ -190,7 +233,22 @@ void PCA85073A::timeDateSet(int second, int minute, int hour) {//year is only th
 /// <param name="month">1 to 12</param>
 /// <param name="year">last two digits</param>
 void PCA85073A::timeDateSet(int day, int weekday, int month, int year) {//year is only the 2 last digit (ex : for 2025 -> year = 25)
-	//TODO timeDateSet date
+	//array of bytes to send
+	byte arr[4];
+
+	//days, stored in BCD format
+	arr[0] = (day % 10 | (day / 10) << 4) & 0b00111111;
+
+	//weekdays
+	arr[1] = weekday & 0b00000111;
+
+	//months, stored in BCD format
+	arr[2] = (month % 10 | (month / 10) << 4) & 0b00011111;
+
+	//year, stored in BCD format
+	arr[3] = year % 10 | (year / 10) << 4;
+
+	writeRegister(Days, 4, arr);
 }
 
 ///////////////////////
