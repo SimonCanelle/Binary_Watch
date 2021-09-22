@@ -22,24 +22,38 @@
 #define row2 9 //D9
 #define row3 8 //D8
 
+enum State {
+	minutes,
+	hours,
+	month,
+	day,
+	year
+}state;
+
 
 ///time components
 PCA85073A rtc;
 int timeDateArr[13]; //{seconds_tenths, seconds_ units, minute_tenths, minute_unit, hour_tenths, hour_unit, day_tenths, day_unit, weekday, month_tenths, month_unit, year_tenths, year_units}
+					 
 //wake timer
 unsigned int timeWNow = 0;
 unsigned int timeWLast = 0;
-unsigned int displayDelay = 5000; //in ms
+const unsigned int displayDelay = 5000; //in ms
 //debounce timer
 unsigned int timeDNow = 0;
 unsigned int timeDLast = 0;
-unsigned int debounceDelay = 100; //in ms
+const unsigned int debounceDelay = 100; //in ms
+const unsigned int timeSetupDelay = 5000; //in ms
 //loop timer
 unsigned int timeLNow = 0;
 unsigned int timeLLast = 0;
-unsigned int loopDelay = 1000; //in ms
+const unsigned int loopDelay = 1000; //in ms
 
+//buttons press counter
+int SW1Press = 0;
+int SW2Press = 0;
 
+//states
 bool awake = true;
 bool DorT = false; // false : SW1, true : SW2
 bool date = false; //false : show month/day,  true : show year
@@ -53,7 +67,6 @@ bool dateChange = false;
 0 x  x  x  x
   0  1  2  3
 */
-
 bool ledMatrix[4][4];
 
 /// <summary>
@@ -102,7 +115,7 @@ void setup() {
 /// </summary>
 void loop() {	
 	//normal display
-	if (awake && !(timeChange|dateChange)) {
+	if (awake && !(timeChange||dateChange)) {
 		timeWNow = millis();
 		timeLNow = timeWNow;
 
@@ -139,17 +152,113 @@ void loop() {
 
 	//modify time
 	else if (awake && timeChange) {
-		//TODO : set time
-	}
+		int change = SW1Press - SW2Press;
 
-	//modify date
-	else if (awake && dateChange) {
-		//TODO : set Date
+		switch (state)
+		{
+		case minutes:
+			int m = timeDateArr[2] * 10 + timeDateArr[3];
+			m += change;
+			//wrap around
+			if (m < 0) {
+				m += 60;
+			}
+			else if (m >= 60) {
+				m -= 60;
+			}
+
+			timeDateArr[2] = m / 10;
+			timeDateArr[3] = m % 10;
+			break;
+
+		case hours:
+			int m = timeDateArr[4] * 10 + timeDateArr[5];
+			m += change;
+			//wrap around
+			if (m < 0) {
+				m += 24;
+			}
+			else if (m >= 24) {
+				m -= 24;
+			}
+
+			timeDateArr[4] = m / 10;
+			timeDateArr[5] = m % 10;
+
+			break;
+
+		case month:
+			int m = timeDateArr[9] * 10 + timeDateArr[10];
+			m += change;
+			//wrap around
+			if (m < 0) {
+				m += 12;
+			}
+			else if (m >= 12) {
+				m -= 12;
+			}
+
+			timeDateArr[9] = m / 10;
+			timeDateArr[10] = m % 10;
+
+			break;
+
+		case day://TODO : implement right number of day for the month
+			int m = timeDateArr[6] * 10 + timeDateArr[7];
+			m += change;
+			//wrap around
+			if (m < 0) {
+				m += 31;
+			}
+			else if (m >= 31) {
+				m -= 31;
+			}
+
+			timeDateArr[6] = m / 10;
+			timeDateArr[7] = m % 10;
+			break;
+
+		case year:
+			int m = timeDateArr[11] * 10 + timeDateArr[12];
+			m += change;
+			//wrap around
+			if (m < 0) {
+				m += 31;
+			}
+			else if (m >= 31) {
+				m -= 31;
+			}
+
+			timeDateArr[11] = m / 10;
+			timeDateArr[12] = m % 10;
+			break;
+		}
+		
+		if (DorT) {
+			if (date) {
+				//input year in led matrix
+				valueToMatrix(2, 0, timeDateArr[11], timeDateArr[12]);
+			}
+			else {
+				//input month/day in led matrix
+				valueToMatrix(timeDateArr[9], timeDateArr[10], timeDateArr[6], timeDateArr[7]);
+			}
+		}
+		else {
+			//input minutes and hour in led matrix
+			valueToMatrix(timeDateArr[2], timeDateArr[3], timeDateArr[4], timeDateArr[5]);
+		}
 	}
 
 	//go to sleep
 	else {
 		stopDisplay();
+		//change interupt function
+		detachInterrupt(digitalPinToInterrupt(SW1_pin));
+		detachInterrupt(digitalPinToInterrupt(SW2_pin));
+		attachInterrupt(digitalPinToInterrupt(SW1_pin), WakeUpSW1, LOW);
+		attachInterrupt(digitalPinToInterrupt(SW2_pin), WakeUpSW1, LOW);
+
 		LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
 	}
 }
@@ -159,7 +268,7 @@ void loop() {
 /// </summary>
 void display(){
 	//columns
-	if(ledMatrix[0][0]| ledMatrix[0][1]) digitalWrite(col0, LOW);
+	if(ledMatrix[0][0] | ledMatrix[0][1]) digitalWrite(col0, LOW);
 	else digitalWrite(col0, HIGH);
 
 	if (ledMatrix[1][0] | ledMatrix[1][1] | ledMatrix[1][2] | ledMatrix[1][3]) digitalWrite(col1, LOW);
@@ -234,16 +343,49 @@ void valueToMatrix(int num1tenth, int num1unit, int num2tenth, int num2unit) {
 /// interupt function of the time button
 /// </summary>
 void WakeUpSW1() {
-	timeDNow = millis();
-	if (!awake) {
 		awake = true;
 		timeWLast = millis();
+		DorT = false;	
+		detachInterrupt(digitalPinToInterrupt(SW1_pin));
+		attachInterrupt(digitalPinToInterrupt(SW1_pin), ClickSW1, CHANGE);
+		
+}
+
+/// <summary>
+/// 
+/// </summary>
+void ClickSW1() {
+	timeDNow = millis();
+	if (timeDNow - timeDLast >= debounceDelay) {
+		timeDLast = timeDNow;
+
+		if (digitalRead(SW1_pin) == LOW) {
 		DorT = false;
-	}
-	else {
-		if (timeDNow - timeDLast >= debounceDelay) {
-			timeWLast = millis();//reset display time
-			DorT = false;
+		
+		}
+		else {
+		timeWLast = millis();
+			if (timeDNow - timeDLast >= timeSetupDelay) {
+				if (!timeChange) {
+					timeChange = true;
+					DorT = false;
+					date = false;
+					state = State::minutes;
+					SW1Press = 0;
+					SW2Press = 0;
+				}
+				else {
+					timeChange = false;
+
+					int m = timeDateArr[2]*10 + timeDateArr[3];
+					int h = timeDateArr[4] * 10 + timeDateArr[5];
+					int M = timeDateArr[9] * 10 + timeDateArr[10];
+					int d = timeDateArr[6] * 10 + timeDateArr[7];
+					int y = timeDateArr[11] * 10 + timeDateArr[12];
+					rtc.timeDateSet(0,m,h,false,d,0,M,y);
+				}
+			}
+			else if(timeChange)SW1Press++;
 		}
 	}
 }
@@ -252,20 +394,57 @@ void WakeUpSW1() {
 /// interupt function of the date function
 /// </summary>
 void WakeUpSW2() {
-	timeDNow = millis();
-	if (!awake) {
 		awake = true;
 		timeWLast = millis();
 		date = false;
-		DorT = true;
-	}
-	else {
-		if (timeDNow - timeDLast >= debounceDelay) {
-			timeDLast = timeDNow;
-			date = !date;
-			timeWLast = millis();//reset display time
-			DorT = true;
+		DorT = true;	
+		detachInterrupt(digitalPinToInterrupt(SW1_pin));
+		attachInterrupt(digitalPinToInterrupt(SW1_pin), ClickSW1, CHANGE);
+}
+
+/// <summary>
+/// 
+/// </summary>
+void ClickSW2() {
+	timeDNow = millis();
+	if (timeDNow - timeDLast >= debounceDelay) {
+		timeDLast = timeDNow;
+
+		if (digitalRead(SW1_pin) == LOW) {
+			DorT = false;
+
+		}
+		else {
+			timeWLast = millis();
+			if (timeDNow - timeDLast >= timeSetupDelay && timeChange) {
+				switch (state)
+				{
+				case minutes:
+					state = State::hours;
+					DorT = false;
+					break;
+				case hours:
+					state = State::month;
+					DorT = true;
+					date = false;
+					break;
+				case month:
+					state = State::day;
+					DorT = true;
+					date = false;
+					break;
+				case day:
+					state = State::year;
+					DorT = true;
+					date = true;
+					break;
+				case year:
+					state = State::minutes;
+					DorT = false;
+					break;
+				}
+			}
+			else if (timeChange)SW2Press++;
 		}
 	}
-
 }
