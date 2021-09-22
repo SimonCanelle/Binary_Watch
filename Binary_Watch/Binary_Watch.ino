@@ -4,8 +4,6 @@
  Author:	Simon Janelle-Bombardier
 */
 
-// the setup function runs once when you press reset or power the board
-
 #include <Wire.h>
 #include "PCA85073A.h"
 #include "src/Low-Power-master/LowPower.h" //source : https://github.com/rocketscream/Low-Power
@@ -58,6 +56,9 @@ bool dateChange = false;
 
 bool ledMatrix[4][4];
 
+/// <summary>
+/// setup is executed once at start of MCU
+/// </summary>
 void setup() {
 	//switches
 	pinMode(SW1_pin, INPUT_PULLUP);
@@ -96,7 +97,9 @@ void setup() {
 	attachInterrupt(digitalPinToInterrupt(SW2_pin), WakeUpSW2, LOW);
 }
 
-// the loop function runs over and over again until power down or reset
+/// <summary>
+/// loop is executed in loop after setup 
+/// </summary>
 void loop() {	
 	//normal display
 	if (awake && !(timeChange|dateChange)) {
@@ -151,6 +154,9 @@ void loop() {
 	}
 }
 
+/// <summary>
+/// setup the input/output for led display from led matrix
+/// </summary>
 void display(){
 	//columns
 	if(ledMatrix[0][0]| ledMatrix[0][1]) digitalWrite(col0, LOW);
@@ -180,6 +186,9 @@ void display(){
 
 }
 
+/// <summary>
+/// turn all led off
+/// </summary>
 void stopDisplay() {	
 	digitalWrite(col0, HIGH);
 	digitalWrite(col1, HIGH);
@@ -191,6 +200,13 @@ void stopDisplay() {
 	digitalWrite(row3, LOW);
 }
 
+/// <summary>
+/// transfer the values to the led matrix
+/// </summary>
+/// <param name="num1tenth">digit in col 1</param>
+/// <param name="num1unit">digit in col 2</param>
+/// <param name="num2tenth">digit in col 3</param>
+/// <param name="num2unit">digit in col 4</param>
 void valueToMatrix(int num1tenth, int num1unit, int num2tenth, int num2unit) {
 	//first tenths
 	ledMatrix[0][0] = num1tenth & 0b00000001;
@@ -214,7 +230,9 @@ void valueToMatrix(int num1tenth, int num1unit, int num2tenth, int num2unit) {
 	ledMatrix[3][3] = (num2unit & 0b00001000) >> 3;
 }
 
-
+/// <summary>
+/// interupt function of the time button
+/// </summary>
 void WakeUpSW1() {
 	timeDNow = millis();
 	if (!awake) {
@@ -230,7 +248,9 @@ void WakeUpSW1() {
 	}
 }
 
-
+/// <summary>
+/// interupt function of the date function
+/// </summary>
 void WakeUpSW2() {
 	timeDNow = millis();
 	if (!awake) {
